@@ -97,7 +97,11 @@ class Chat {
 				return;
 			}
 			
-			if (!event.nickname || typeof event.nickname != "string") {
+			if (
+				!event.nickname ||
+				typeof event.nickname != "string" ||
+				event.nickname.includes("\n")
+			) {
 				this.error(client, "illegal nickname");
 				
 				return;
