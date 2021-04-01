@@ -8,6 +8,7 @@ class Chat {
 		this.socket = null;
 		
 		this.clients = [];
+		this.chatters = new Map();
 	}
 	
 	run() {
@@ -21,10 +22,18 @@ class Chat {
 		});
 		
 		this.socket.on("connection", (client) => {
+			client.chat = {
+				authorized: false
+			};
+			
 			this.clients.push(client);
 			
 			client.on("close", () => {
 				this.clients.splice(this.clients.indexOf(client), 1);
+				
+				if (client.chat.authorized) {
+					this.chatters.delete(client.chat.nickname);
+				}
 			});
 			client.on("error", (error) => {
 				this.error(client, error.message);
@@ -77,6 +86,52 @@ class Chat {
 	}
 	recieveEvent(client, event) {
 		switch(event.type) {
+		case "join":
+			if (client.chat.authorized) {
+				this.error(client, "already authorized");
+				
+				return;
+			}
+			
+			if (!event.nickname || typeof event.nickname != "string") {
+				this.error(client, "illegal nickname");
+				
+				return;
+			}
+			
+			if (this.chatters.has(event.nickname)) {
+				this.error(client, "this nickname is already used");
+				
+				return;
+			}
+			
+			this.chatters.set(event.nickname, client);
+			
+			client.chat.authorized = true;
+			client.chat.nickname = event.nickname;
+			
+			break;
+		case "message":
+			if (!client.chat.authorized) {
+				this.error(client, "not authorized");
+				
+				return;
+			}
+			
+			if (typeof event.text != "string") {
+				this.error(client, "client-sent message text isn't a string");
+				
+				return;
+			}
+			
+			for (const [_, chatter] of this.chatters) {
+				this.sendEvent(chatter, "message", {
+					sender: client.chat.nickname,
+					text: event.text
+				});
+			}
+			
+			break;
 		default:
 			this.error(client, "illegal client-sent event type");
 			
