@@ -33,6 +33,8 @@ class Chat {
 				
 				if (client.chat.authorized) {
 					this.chatters.delete(client.chat.nickname);
+					
+					this.sendMessage(null, `${client.chat.nickname} left`);
 				}
 			});
 			client.on("error", (error) => {
@@ -111,6 +113,8 @@ class Chat {
 			client.chat.nickname = event.nickname;
 			
 			this.sendEvent(client, "welcome", {});
+			
+			this.sendMessage(null, `${event.nickname} joined the party`);
 			
 			break;
 		case "message":
