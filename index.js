@@ -110,6 +110,8 @@ class Chat {
 			client.chat.authorized = true;
 			client.chat.nickname = event.nickname;
 			
+			this.sendEvent(client, "welcome", {});
+			
 			break;
 		case "message":
 			if (!client.chat.authorized) {
