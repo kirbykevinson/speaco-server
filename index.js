@@ -144,7 +144,8 @@ class Chat {
 		for (const [_, chatter] of this.chatters) {
 			this.sendEvent(chatter, "message", {
 				sender: sender,
-				text: text
+				text: text,
+				timestamp: (new Date()).toISOString()
 			});
 		}
 	}
