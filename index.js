@@ -9,6 +9,8 @@ class Chat {
 		
 		this.clients = [];
 		this.chatters = new Map();
+		
+		this.log = [];
 	}
 	
 	run() {
@@ -107,12 +109,16 @@ class Chat {
 				return;
 			}
 			
-			this.chatters.set(event.nickname, client);
-			
 			client.chat.authorized = true;
 			client.chat.nickname = event.nickname;
 			
+			this.chatters.set(event.nickname, client);
+			
 			this.sendEvent(client, "welcome", {});
+			
+			for (const message of this.log) {
+				this.sendEvent(client, "message", message);
+			}
 			
 			this.sendMessage(null, `${event.nickname} joined the party`);
 			
@@ -141,12 +147,20 @@ class Chat {
 	}
 	
 	sendMessage(sender, text) {
+		const message = {
+			sender: sender,
+			text: text,
+			timestamp: (new Date()).toISOString()
+		};
+		
 		for (const [_, chatter] of this.chatters) {
-			this.sendEvent(chatter, "message", {
-				sender: sender,
-				text: text,
-				timestamp: (new Date()).toISOString()
-			});
+			this.sendEvent(chatter, "message", message);
+		}
+		
+		this.log.push(message);
+		
+		if (this.log.length > 100) {
+			this.log.shift();
 		}
 	}
 }
