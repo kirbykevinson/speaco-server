@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/kirbykevinson/speaco-server/issues"
   },
-  "homepage": "https://github.com/kirbykevinson/speaco-server#readme"
+  "homepage": "https://github.com/kirbykevinson/speaco-server#readme",
+  "dependencies": {
+    "ws": "^7.4.4"
+  }
 }
