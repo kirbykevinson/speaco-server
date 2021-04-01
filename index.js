@@ -55,7 +55,7 @@ class Chat {
 				}
 				
 				if (!parsedEvent || typeof parsedEvent != "object") {
-					this.error("client, client-sent event is not an object");
+					this.error(client, "client-sent event is not an object");
 					
 					return;
 				}
