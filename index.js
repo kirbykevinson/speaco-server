@@ -126,18 +126,22 @@ class Chat {
 				return;
 			}
 			
-			for (const [_, chatter] of this.chatters) {
-				this.sendEvent(chatter, "message", {
-					sender: client.chat.nickname,
-					text: event.text
-				});
-			}
+			this.sendMessage(client.chat.nickname, event.text);
 			
 			break;
 		default:
 			this.error(client, "illegal client-sent event type");
 			
 			break;
+		}
+	}
+	
+	sendMessage(sender, text) {
+		for (const [_, chatter] of this.chatters) {
+			this.sendEvent(chatter, "message", {
+				sender: sender,
+				text: text
+			});
 		}
 	}
 }
