@@ -11,12 +11,15 @@ class Chat {
 		this.chatters = new Map();
 		
 		this.log = [];
+		this.attachments = new Map();
 	}
 	
 	run() {
 		this.socket = new ws.Server({
 			host: this.host,
-			port: this.port
+			port: this.port,
+			
+			maxPayload: 100 * Math.pow(2, 10)
 		});
 		
 		this.socket.on("listening", () => {
@@ -143,6 +146,52 @@ class Chat {
 			this.sendMessage(client.chat.nickname, event.text);
 			
 			break;
+		case "add-attachment":
+			if (!client.chat.authorized) {
+				this.error(client, "not authorized");
+				
+				return;
+			}
+			
+			if (typeof event.data != "string") {
+				this.error(client, "client-sent attachment data isn't a string");
+				
+				return;
+			}
+			
+			const id = this.generateAttachmentId();
+			
+			this.attachments.set(id, event.data);
+			
+			this.sendEvent(client, "attachment-added", {
+				id: id
+			});
+			
+			break;
+		case "fetch-attachment":
+			if (!client.chat.authorized) {
+				this.error(client, "not authorized");
+				
+				return;
+			}
+			
+			if (typeof event.id != "string") {
+				this.error(client, "client-sent attachment id isn't a string");
+				
+				return;
+			}
+			
+			if (!this.attachments.has(event.id)) {
+				this.error(client, "this attachment doesn't exist");
+				
+				return;
+			}
+			
+			this.sendEvent(client, "attachment-fetched", {
+				data: this.attachments.get(event.id)
+			});
+			
+			break;
 		default:
 			this.error(client, "illegal client-sent event type");
 			
@@ -166,6 +215,22 @@ class Chat {
 		if (this.log.length > 100) {
 			this.log.shift();
 		}
+	}
+	
+	generateAttachmentId() {
+		let id = null;
+		
+		do {
+			id = "";
+			
+			for (let i = 0; i < 10; i++) {
+				id += Math.floor(
+					1 + Math.random() * 0x10000
+				).toString(16).slice(1);
+			}
+		} while (this.attachments.has(id));
+		
+		return id;
 	}
 }
 
