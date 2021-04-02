@@ -12,6 +12,13 @@ class Chat {
 		
 		this.log = [];
 		this.attachments = new Map();
+		
+		this.eventHandlers = {
+			"join": this.onJoin,
+			"message": this.onMessage,
+			"add-attachment": this.onAddAttachment,
+			"fetch-attachment": this.onFetchAttachment
+		};
 	}
 	
 	run() {
@@ -46,30 +53,36 @@ class Chat {
 				this.error(client, error.message);
 			});
 			
-			client.on("message", (data) => {
-				let parsedEvent = null;
+			client.on("message", (message) => {
+				let event = null;
 				
 				try {
-					parsedEvent = JSON.parse(data);
+					event = JSON.parse(message);
 				} catch (error) {
 					this.error(client, "malformed client-sent event");
 					
 					return;
 				}
 				
-				if (!parsedEvent || typeof parsedEvent != "object") {
+				if (!event || typeof event != "object") {
 					this.error(client, "client-sent event is not an object");
 					
 					return;
 				}
 				
-				if (!("type" in parsedEvent)) {
+				if (!("type" in event)) {
 					this.error(client, "client-sent event without a type");
 					
 					return;
 				}
 				
-				this.recieveEvent(client, parsedEvent);
+				if (!this.eventHandlers.hasOwnProperty(event.type)) {
+					this.error(client, "illegal client-sent event type");
+					
+					return;
+				}
+				
+				this.eventHandlers[event.type].call(this, client, event);
 			});
 		});
 	}
@@ -91,125 +104,114 @@ class Chat {
 		
 		client.send(JSON.stringify(data));
 	}
-	recieveEvent(client, event) {
-		switch(event.type) {
-		case "join":
-			if (client.chat.authorized) {
-				this.error(client, "already authorized");
-				
-				return;
-			}
+	
+	onJoin(client, event) {
+		if (client.chat.authorized) {
+			this.error(client, "already authorized");
 			
-			if (
-				!event.nickname ||
-				typeof event.nickname != "string" ||
-				event.nickname.includes("\n")
-			) {
-				this.error(client, "illegal nickname");
-				
-				return;
-			}
-			
-			if (this.chatters.has(event.nickname)) {
-				this.error(client, "this nickname is already used");
-				
-				return;
-			}
-			
-			client.chat.authorized = true;
-			client.chat.nickname = event.nickname;
-			
-			this.chatters.set(event.nickname, client);
-			
-			this.sendEvent(client, "welcome", {});
-			
-			for (const message of this.log) {
-				this.sendEvent(client, "message", message);
-			}
-			
-			this.sendMessage(null, `${event.nickname} joined the party`);
-			
-			break;
-		case "message":
-			if (!client.chat.authorized) {
-				this.error(client, "not authorized");
-				
-				return;
-			}
-			
-			if (typeof event.text != "string") {
-				this.error(client, "client-sent message text isn't a string");
-				
-				return;
-			}
-			
-			if (event.attachment) {
-				if (typeof event.attachment != "string") {
-					this.error(client, "client-sent message attachment isn't a string");
-					
-					return;
-				}
-				if (!this.attachments.has(event.attachment)) {
-					this.error(client, "client-sent message attachment doesn't extst");
-					
-					return;
-				}
-			}
-			
-			this.sendMessage(client.chat.nickname, event.text, event.attachment);
-			
-			break;
-		case "add-attachment":
-			if (!client.chat.authorized) {
-				this.error(client, "not authorized");
-				
-				return;
-			}
-			
-			if (typeof event.data != "string") {
-				this.error(client, "client-sent attachment data isn't a string");
-				
-				return;
-			}
-			
-			const id = this.generateAttachmentId();
-			
-			this.attachments.set(id, event.data);
-			
-			this.sendEvent(client, "attachment-added", {
-				id: id
-			});
-			
-			break;
-		case "fetch-attachment":
-			if (!client.chat.authorized) {
-				this.error(client, "not authorized");
-				
-				return;
-			}
-			
-			if (typeof event.id != "string") {
-				this.error(client, "client-sent attachment id isn't a string");
-				
-				return;
-			}
-			
-			if (!this.attachments.has(event.id)) {
-				this.error(client, "this attachment doesn't exist");
-				
-				return;
-			}
-			
-			this.sendEvent(client, "attachment-fetched", {
-				data: this.attachments.get(event.id)
-			});
-			
-			break;
-		default:
-			this.error(client, "illegal client-sent event type");
-			
-			break;
+			return;
 		}
+		
+		if (
+			!event.nickname ||
+			typeof event.nickname != "string" ||
+			event.nickname.includes("\n")
+		) {
+			this.error(client, "illegal nickname");
+			
+			return;
+		}
+		
+		if (this.chatters.has(event.nickname)) {
+			this.error(client, "this nickname is already used");
+			
+			return;
+		}
+		
+		client.chat.authorized = true;
+		client.chat.nickname = event.nickname;
+		
+		this.chatters.set(event.nickname, client);
+		
+		this.sendEvent(client, "welcome", {});
+		
+		for (const message of this.log) {
+			this.sendEvent(client, "message", message);
+		}
+		
+		this.sendMessage(null, `${event.nickname} joined the party`);
+	}
+	onMessage(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (typeof event.text != "string") {
+			this.error(client, "client-sent message text isn't a string");
+			
+			return;
+		}
+		
+		if (event.attachment) {
+			if (typeof event.attachment != "string") {
+				this.error(client, "client-sent message attachment isn't a string");
+				
+				return;
+			}
+			if (!this.attachments.has(event.attachment)) {
+				this.error(client, "client-sent message attachment doesn't extst");
+				
+				return;
+			}
+		}
+		
+		this.sendMessage(client.chat.nickname, event.text, event.attachment);
+	}
+	onAddAttachment(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (typeof event.data != "string") {
+			this.error(client, "client-sent attachment data isn't a string");
+			
+			return;
+		}
+		
+		const id = this.generateAttachmentId();
+		
+		this.attachments.set(id, event.data);
+		
+		this.sendEvent(client, "attachment-added", {
+			id: id
+		});
+	}
+	onFetchAttachment(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (typeof event.id != "string") {
+			this.error(client, "client-sent attachment id isn't a string");
+			
+			return;
+		}
+		
+		if (!this.attachments.has(event.id)) {
+			this.error(client, "this attachment doesn't exist");
+			
+			return;
+		}
+		
+		this.sendEvent(client, "attachment-fetched", {
+			data: this.attachments.get(event.id)
+		});
 	}
 	
 	sendMessage(sender, text, attachment) {
