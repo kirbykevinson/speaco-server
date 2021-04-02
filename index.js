@@ -143,7 +143,20 @@ class Chat {
 				return;
 			}
 			
-			this.sendMessage(client.chat.nickname, event.text);
+			if (event.attachment) {
+				if (typeof event.attachment != "string") {
+					this.error(client, "client-sent message attachment isn't a string");
+					
+					return;
+				}
+				if (!this.attachments.has(event.attachment)) {
+					this.error(client, "client-sent message attachment doesn't extst");
+					
+					return;
+				}
+			}
+			
+			this.sendMessage(client.chat.nickname, event.text, event.attachment);
 			
 			break;
 		case "add-attachment":
@@ -199,10 +212,11 @@ class Chat {
 		}
 	}
 	
-	sendMessage(sender, text) {
+	sendMessage(sender, text, attachment) {
 		const message = {
 			sender: sender,
 			text: text,
+			attachment: attachment,
 			timestamp: (new Date()).toISOString()
 		};
 		
