@@ -19,7 +19,7 @@ class Chat {
 			host: this.host,
 			port: this.port,
 			
-			maxPayload: 100 * Math.pow(2, 10)
+			maxPayload: Math.pow(2, 20)
 		});
 		
 		this.socket.on("listening", () => {
