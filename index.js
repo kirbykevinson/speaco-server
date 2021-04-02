@@ -19,6 +19,13 @@ class Chat {
 			"add-attachment": this.onAddAttachment,
 			"fetch-attachment": this.onFetchAttachment
 		};
+		
+		this.limits = {
+			eventSize: 6 * 2 ** 20,
+			nicknameLength: 32,
+			messageLength: 1024,
+			attachmentSize: 5 * 2 ** 20
+		};
 	}
 	
 	run() {
@@ -26,7 +33,7 @@ class Chat {
 			host: this.host,
 			port: this.port,
 			
-			maxPayload: Math.pow(2, 20)
+			maxPayload: this.limits.eventSize
 		});
 		
 		this.socket.on("listening", () => {
@@ -121,7 +128,11 @@ class Chat {
 			
 			return;
 		}
-		
+		if (event.nickname.length > this.limits.nicknameLength) {
+			this.error(client, "this nickname is too long");
+			
+			return;
+		}
 		if (this.chatters.has(event.nickname)) {
 			this.error(client, "this nickname is already used");
 			
@@ -153,6 +164,11 @@ class Chat {
 			
 			return;
 		}
+		if (event.text.length > this.limits.messageLength) {
+			this.error(client, "client-sent message text is too long");
+			
+			return;
+		}
 		
 		if (event.attachment) {
 			if (typeof event.attachment != "string") {
@@ -160,6 +176,7 @@ class Chat {
 				
 				return;
 			}
+			
 			if (!this.attachments.has(event.attachment)) {
 				this.error(client, "client-sent message attachment doesn't extst");
 				
@@ -178,6 +195,11 @@ class Chat {
 		
 		if (typeof event.data != "string") {
 			this.error(client, "client-sent attachment data isn't a string");
+			
+			return;
+		}
+		if (event.data.length > this.limits.attachmentSize) {
+			this.error(client, "client-sent attachment data is too long");
 			
 			return;
 		}
