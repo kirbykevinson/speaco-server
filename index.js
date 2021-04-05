@@ -42,7 +42,8 @@ class Chat {
 		
 		this.socket.on("connection", (client) => {
 			client.chat = {
-				authorized: false
+				authorized: false,
+				currentMessageId: 0
 			};
 			
 			this.clients.push(client);
@@ -184,7 +185,7 @@ class Chat {
 			}
 		}
 		
-		this.sendMessage(client.chat.nickname, event.text, event.attachment);
+		this.sendMessage(client, event.text, event.attachment);
 	}
 	onAddAttachment(client, event) {
 		if (!client.chat.authorized) {
@@ -238,11 +239,17 @@ class Chat {
 	
 	sendMessage(sender, text, attachment) {
 		const message = {
-			sender: sender,
+			sender: null,
+			id: null,
 			text: text,
 			attachment: attachment,
 			timestamp: (new Date()).toISOString()
 		};
+		
+		if (sender) {
+			message.sender = sender.chat.nickname;
+			message.id = sender.chat.currentMessageId++;
+		}
 		
 		for (const [_, chatter] of this.chatters) {
 			this.sendEvent(chatter, "message", message);
