@@ -162,7 +162,7 @@ class Chat {
 			return;
 		}
 		
-		if (!this.checkMessageCorrectness(client, event)) {
+		if (!this.checkMessageEvent(client, event)) {
 			return;
 		}
 		
@@ -175,7 +175,7 @@ class Chat {
 			return;
 		}
 		
-		if (!this.checkMessageCorrectness(client, event)) {
+		if (!this.checkMessageEvent(client, event)) {
 			return;
 		}
 		
@@ -252,7 +252,7 @@ class Chat {
 		});
 	}
 	
-	checkMessageCorrectness(client, event) {
+	checkMessageEvent(client, event) {
 		if (typeof event.text != "string") {
 			this.error(client, "client-sent message text isn't a string");
 			
