@@ -16,6 +16,7 @@ class Chat {
 		this.eventHandlers = {
 			"join": this.onJoin,
 			"message": this.onMessage,
+			"delete-message": this.onDeleteMessage,
 			"add-attachment": this.onAddAttachment,
 			"fetch-attachment": this.onFetchAttachment
 		};
@@ -153,6 +154,21 @@ class Chat {
 		
 		this.sendMessage(null, `${event.nickname} joined the party`);
 	}
+	onDeleteMessage(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (typeof event.id != "number") {
+			this.error(client, "client-sent message id isn't a number");
+			
+			return;
+		}
+		
+		this.deleteMessage(client, event.id);
+	}
 	onMessage(client, event) {
 		if (!client.chat.authorized) {
 			this.error(client, "not authorized");
@@ -259,6 +275,22 @@ class Chat {
 		
 		if (this.log.length > 100) {
 			this.log.shift();
+		}
+	}
+	deleteMessage(sender, id) {
+		this.log = this.log.filter((message) => {
+			if (message.sender == sender.chat.nickname && message.id == id) {
+				return false;
+			}
+			
+			return true;
+		});
+		
+		for (const [_, chatter] of this.chatters) {
+			this.sendEvent(chatter, "message-deleted", {
+				sender: sender.chat.nickname,
+				id: id
+			});
 		}
 	}
 	
