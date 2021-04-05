@@ -312,27 +312,18 @@ class Chat {
 			this.sendEvent(chatter, "message", message);
 		}
 	}
+	
 	editMessage(sender, id, text, attachment) {
-		let target = null;
+		const message = this.findMessage(sender.chat.nickname, id);
 		
-		this.log = this.log.map((message) => {
-			if (message.sender == sender.chat.nickname && message.id == id) {
-				target = message;
-				
-				message.text = text;
-				message.attachment = attachment;
-			}
-			
-			return message;
-		});
-		
-		if (!target) {
+		if (!message) {
 			return;
 		}
 		
-		for (const [_, chatter] of this.chatters) {
-			this.sendEvent(chatter, "message-edited", target);
-		}
+		message.text = text;
+		message.attachment = attachment;
+		
+		this.updateMessage(message);
 	}
 	deleteMessage(sender, id) {
 		this.log = this.log.filter((message) => {
@@ -348,6 +339,22 @@ class Chat {
 				sender: sender.chat.nickname,
 				id: id
 			});
+		}
+	}
+	
+	findMessage(senderNickname, id) {
+		for (const message of this.log) {
+			
+			if (message.sender == senderNickname && message.id == id) {
+				return message;
+			}
+		}
+		
+		return null;
+	}
+	updateMessage(message) {
+		for (const [_, chatter] of this.chatters) {
+			this.sendEvent(chatter, "message-updated", message);
 		}
 	}
 	
