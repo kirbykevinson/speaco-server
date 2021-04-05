@@ -9,6 +9,7 @@ class Chat {
 		
 		this.clients = [];
 		this.chatters = new Map();
+		this.chatterData = new Map();
 		
 		this.log = [];
 		this.attachments = new Map();
@@ -44,8 +45,7 @@ class Chat {
 		
 		this.socket.on("connection", (client) => {
 			client.chat = {
-				authorized: false,
-				currentMessageId: 0
+				authorized: false
 			};
 			
 			this.clients.push(client);
@@ -142,8 +142,15 @@ class Chat {
 			return;
 		}
 		
+		if (!this.chatterData.has(event.nickname)) {
+			this.chatterData.set(event.nickname, {
+				currentMessageId: 0
+			});
+		}
+		
 		client.chat.authorized = true;
 		client.chat.nickname = event.nickname;
+		client.chat.data = this.chatterData.get(event.nickname);
 		
 		this.chatters.set(event.nickname, client);
 		
@@ -292,7 +299,7 @@ class Chat {
 		
 		if (sender) {
 			message.sender = sender.chat.nickname;
-			message.id = sender.chat.currentMessageId++;
+			message.id = sender.chat.data.currentMessageId++;
 		}
 		
 		this.log.push(message);
