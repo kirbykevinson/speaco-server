@@ -16,6 +16,7 @@ class Chat {
 		this.eventHandlers = {
 			"join": this.onJoin,
 			"message": this.onMessage,
+			"edit-message": this.onEditMessage,
 			"delete-message": this.onDeleteMessage,
 			"add-attachment": this.onAddAttachment,
 			"fetch-attachment": this.onFetchAttachment
@@ -154,6 +155,38 @@ class Chat {
 		
 		this.sendMessage(null, `${event.nickname} joined the party`);
 	}
+	onMessage(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (!this.checkMessageCorrectness(client, event)) {
+			return;
+		}
+		
+		this.sendMessage(client, event.text, event.attachment);
+	}
+	onEditMessage(client, event) {
+		if (!client.chat.authorized) {
+			this.error(client, "not authorized");
+			
+			return;
+		}
+		
+		if (!this.checkMessageCorrectness(client, event)) {
+			return;
+		}
+		
+		if (typeof event.id != "number") {
+			this.error(client, "client-sent message id isn't a number");
+			
+			return;
+		}
+		
+		this.editMessage(client, event.id, event.text, event.attachment);
+	}
 	onDeleteMessage(client, event) {
 		if (!client.chat.authorized) {
 			this.error(client, "not authorized");
@@ -168,40 +201,6 @@ class Chat {
 		}
 		
 		this.deleteMessage(client, event.id);
-	}
-	onMessage(client, event) {
-		if (!client.chat.authorized) {
-			this.error(client, "not authorized");
-			
-			return;
-		}
-		
-		if (typeof event.text != "string") {
-			this.error(client, "client-sent message text isn't a string");
-			
-			return;
-		}
-		if (event.text.length > this.limits.messageLength) {
-			this.error(client, "client-sent message text is too long");
-			
-			return;
-		}
-		
-		if (event.attachment) {
-			if (typeof event.attachment != "string") {
-				this.error(client, "client-sent message attachment isn't a string");
-				
-				return;
-			}
-			
-			if (!this.attachments.has(event.attachment)) {
-				this.error(client, "client-sent message attachment doesn't extst");
-				
-				return;
-			}
-		}
-		
-		this.sendMessage(client, event.text, event.attachment);
 	}
 	onAddAttachment(client, event) {
 		if (!client.chat.authorized) {
@@ -253,6 +252,35 @@ class Chat {
 		});
 	}
 	
+	checkMessageCorrectness(client, event) {
+		if (typeof event.text != "string") {
+			this.error(client, "client-sent message text isn't a string");
+			
+			return false;
+		}
+		if (event.text.length > this.limits.messageLength) {
+			this.error(client, "client-sent message text is too long");
+			
+			return false;
+		}
+		
+		if (event.attachment) {
+			if (typeof event.attachment != "string") {
+				this.error(client, "client-sent message attachment isn't a string");
+				
+				return false;
+			}
+			
+			if (!this.attachments.has(event.attachment)) {
+				this.error(client, "client-sent message attachment doesn't extst");
+				
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
 	sendMessage(sender, text, attachment) {
 		const message = {
 			sender: null,
@@ -267,14 +295,33 @@ class Chat {
 			message.id = sender.chat.currentMessageId++;
 		}
 		
-		for (const [_, chatter] of this.chatters) {
-			this.sendEvent(chatter, "message", message);
-		}
-		
 		this.log.push(message);
 		
 		if (this.log.length > 100) {
 			this.log.shift();
+		}
+		
+		for (const [_, chatter] of this.chatters) {
+			this.sendEvent(chatter, "message", message);
+		}
+	}
+	editMessage(sender, id, text, attachment) {
+		this.log = this.log.map((message) => {
+			if (message.sender == sender.chat.nickname && message.id == id) {
+				message.text = text;
+				message.attachment = attachment;
+			}
+			
+			return message;
+		});
+		
+		for (const [_, chatter] of this.chatters) {
+			this.sendEvent(chatter, "message-edited", {
+				sender: sender.chat.nickname,
+				id: id,
+				text: text,
+				attachment: attachment
+			});
 		}
 	}
 	deleteMessage(sender, id) {
