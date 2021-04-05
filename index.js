@@ -313,8 +313,12 @@ class Chat {
 		}
 	}
 	editMessage(sender, id, text, attachment) {
+		let target = null;
+		
 		this.log = this.log.map((message) => {
 			if (message.sender == sender.chat.nickname && message.id == id) {
+				target = message;
+				
 				message.text = text;
 				message.attachment = attachment;
 			}
@@ -322,13 +326,12 @@ class Chat {
 			return message;
 		});
 		
+		if (!target) {
+			return;
+		}
+		
 		for (const [_, chatter] of this.chatters) {
-			this.sendEvent(chatter, "message-edited", {
-				sender: sender.chat.nickname,
-				id: id,
-				text: text,
-				attachment: attachment
-			});
+			this.sendEvent(chatter, "message-edited", target);
 		}
 	}
 	deleteMessage(sender, id) {
