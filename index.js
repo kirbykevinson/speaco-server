@@ -157,9 +157,9 @@ class Chat {
 		
 		this.sendEvent(client, "welcome", {});
 		
-		for (const message of this.log) {
-			this.sendEvent(client, "message", message);
-		}
+		this.sendEvent(client, "messages", {
+			messages: this.log
+		});
 		
 		this.sendMessage(null, `${event.nickname} joined the party`);
 	}
