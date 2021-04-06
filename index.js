@@ -26,6 +26,7 @@ class Chat {
 		this.limits = {
 			eventSize: 6 * 2 ** 20,
 			nicknameLength: 32,
+			logSize: 128,
 			messageLength: 1024,
 			attachmentSize: 5 * 2 ** 20
 		};
@@ -304,7 +305,7 @@ class Chat {
 		
 		this.log.push(message);
 		
-		if (this.log.length > 100) {
+		if (this.log.length > this.limits.logSize) {
 			this.log.shift();
 		}
 		
