@@ -293,9 +293,12 @@ class Chat {
 		const message = {
 			sender: null,
 			id: null,
+			
 			text: text,
 			attachment: attachment,
-			timestamp: (new Date()).toISOString()
+			
+			timestamp: (new Date()).toISOString(),
+			edited: false
 		};
 		
 		if (sender) {
@@ -323,6 +326,8 @@ class Chat {
 		
 		message.text = text;
 		message.attachment = attachment;
+		
+		message.edited = true;
 		
 		this.updateMessage(message);
 	}
