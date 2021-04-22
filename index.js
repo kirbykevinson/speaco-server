@@ -217,6 +217,12 @@ class Chat {
 			return;
 		}
 		
+		if (event.name && typeof event.name != "string") {
+			this.error(client, "client-sent attachment name isn't a string");
+			
+			return;
+		}
+		
 		if (typeof event.data != "string") {
 			this.error(client, "client-sent attachment data isn't a string");
 			
@@ -230,7 +236,10 @@ class Chat {
 		
 		const id = this.generateAttachmentId();
 		
-		this.attachments.set(id, event.data);
+		this.attachments.set(id, {
+			name: event.name,
+			data: event.data
+		});
 		
 		this.sendEvent(client, "attachment-added", {
 			id: id
@@ -255,9 +264,9 @@ class Chat {
 			return;
 		}
 		
-		this.sendEvent(client, "attachment-fetched", {
-			data: this.attachments.get(event.id)
-		});
+		this.sendEvent(client, "attachment-fetched",
+			this.attachments.get(event.id)
+		);
 	}
 	
 	checkMessageEvent(client, event) {
