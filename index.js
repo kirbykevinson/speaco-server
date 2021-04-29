@@ -11,7 +11,7 @@ class Chat {
 		this.chatters = new Map();
 		this.chatterData = new Map();
 		
-		this.log = [];
+		this.history = [];
 		this.attachments = new Map();
 		
 		this.eventHandlers = {
@@ -26,7 +26,7 @@ class Chat {
 		this.limits = {
 			eventSize: 6 * 2 ** 20,
 			nicknameLength: 32,
-			logSize: 128,
+			historySize: 128,
 			messageLength: 1024,
 			attachmentSize: 5 * 2 ** 20
 		};
@@ -158,7 +158,7 @@ class Chat {
 		this.sendEvent(client, "welcome", {});
 		
 		this.sendEvent(client, "messages", {
-			messages: this.log
+			messages: this.history
 		});
 		
 		this.sendMessage(null, `${event.nickname} joined the party`);
@@ -315,10 +315,10 @@ class Chat {
 			message.id = sender.chat.data.currentMessageId++;
 		}
 		
-		this.log.push(message);
+		this.history.push(message);
 		
-		if (this.log.length > this.limits.logSize) {
-			this.log.shift();
+		if (this.history.length > this.limits.historySize) {
+			this.history.shift();
 		}
 		
 		for (const [_, chatter] of this.chatters) {
@@ -338,10 +338,10 @@ class Chat {
 		
 		message.edited = true;
 		
-		this.updateMessage(message);
+		this.notifyMessageUpdate(message);
 	}
 	deleteMessage(sender, id) {
-		this.log = this.log.filter((message) => {
+		this.history = this.history.filter((message) => {
 			if (message.sender == sender.chat.nickname && message.id == id) {
 				return false;
 			}
@@ -358,7 +358,7 @@ class Chat {
 	}
 	
 	findMessage(senderNickname, id) {
-		for (const message of this.log) {
+		for (const message of this.history) {
 			
 			if (message.sender == senderNickname && message.id == id) {
 				return message;
@@ -367,7 +367,7 @@ class Chat {
 		
 		return null;
 	}
-	updateMessage(message) {
+	notifyMessageUpdate(message) {
 		for (const [_, chatter] of this.chatters) {
 			this.sendEvent(chatter, "message-updated", message);
 		}
