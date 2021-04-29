@@ -1,9 +1,9 @@
 const ws = require("ws");
 
 class Chat {
-	constructor(host, port) {
-		this.host = host || "localhost";
-		this.port = port || "6942";
+	constructor(host = "localhost", port = "6942") {
+		this.host = host;
+		this.port = port;
 		
 		this.socket = null;
 		
