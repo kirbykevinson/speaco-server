@@ -143,25 +143,7 @@ class Chat {
 			return;
 		}
 		
-		if (!this.chatterData.has(event.nickname)) {
-			this.chatterData.set(event.nickname, {
-				currentMessageId: 0
-			});
-		}
-		
-		client.chat.authorized = true;
-		client.chat.nickname = event.nickname;
-		client.chat.data = this.chatterData.get(event.nickname);
-		
-		this.chatters.set(event.nickname, client);
-		
-		this.sendEvent(client, "welcome", {});
-		
-		this.sendEvent(client, "messages", {
-			messages: this.history
-		});
-		
-		this.sendMessage(null, `${event.nickname} joined the party`);
+		this.authorizeClient(client, event.nickname);
 	}
 	onMessage(client, event) {
 		if (!client.chat.authorized) {
@@ -234,16 +216,7 @@ class Chat {
 			return;
 		}
 		
-		const id = this.generateAttachmentId();
-		
-		this.attachments.set(id, {
-			name: event.name,
-			data: event.data
-		});
-		
-		this.sendEvent(client, "attachment-added", {
-			id: id
-		});
+		this.addAttachment(client, event.name, event.data);
 	}
 	onFetchAttachment(client, event) {
 		if (!client.chat.authorized) {
@@ -264,9 +237,7 @@ class Chat {
 			return;
 		}
 		
-		this.sendEvent(client, "attachment-fetched",
-			this.attachments.get(event.id)
-		);
+		this.fetchAttachment(client, event.id);
 	}
 	
 	checkMessageEvent(client, event) {
@@ -296,6 +267,28 @@ class Chat {
 		}
 		
 		return true;
+	}
+	
+	authorizeClient(client, nickname) {
+		if (!this.chatterData.has(nickname)) {
+			this.chatterData.set(nickname, {
+				currentMessageId: 0
+			});
+		}
+		
+		client.chat.authorized = true;
+		client.chat.nickname = nickname;
+		client.chat.data = this.chatterData.get(nickname);
+		
+		this.chatters.set(nickname, client);
+		
+		this.sendEvent(client, "welcome", {});
+		
+		this.sendEvent(client, "messages", {
+			messages: this.history
+		});
+		
+		this.sendMessage(null, `${nickname} joined the party`);
 	}
 	
 	sendMessage(sender, text, attachment) {
@@ -359,7 +352,6 @@ class Chat {
 	
 	findMessage(senderNickname, id) {
 		for (const message of this.history) {
-			
 			if (message.sender == senderNickname && message.id == id) {
 				return message;
 			}
@@ -371,6 +363,26 @@ class Chat {
 		for (const [_, chatter] of this.chatters) {
 			this.sendEvent(chatter, "message-updated", message);
 		}
+	}
+	
+	addAttachment(client, name, data) {
+		const id = this.generateAttachmentId();
+		
+		this.attachments.set(id, {
+			name: name,
+			data: data
+		});
+		
+		if (client) {
+			this.sendEvent(client, "attachment-added", {
+				id: id
+			});
+		}
+	}
+	fetchAttachment(client, id) {
+		this.sendEvent(client, "attachment-fetched",
+			this.attachments.get(id)
+		);
 	}
 	
 	generateAttachmentId() {
