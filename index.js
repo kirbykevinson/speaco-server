@@ -108,7 +108,15 @@ class Chat {
 		});
 	}
 	stop() {
+		this.sendMessage(null, "The server shut down");
+		
 		this.writeBackup();
+		
+		for (const client of this.clients) {
+			this.sendEvent(client, "bye", {})
+			
+			client.terminate();
+		}
 	}
 	
 	readBackup() {
