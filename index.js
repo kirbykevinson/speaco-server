@@ -1,4 +1,6 @@
-const ws = require("ws");
+const
+	ws = require("ws"),
+	fs = require("fs");
 
 class Chat {
 	constructor(host = "localhost", port = "6942") {
@@ -9,8 +11,8 @@ class Chat {
 		
 		this.clients = [];
 		this.chatters = new Map();
-		this.chatterData = new Map();
 		
+		this.chatterData = new Map();
 		this.history = [];
 		this.attachments = new Map();
 		
@@ -33,6 +35,14 @@ class Chat {
 	}
 	
 	run() {
+		this.readBackup();
+		
+		process.on("SIGINT", () => {
+			this.stop();
+			
+			process.exit(0);
+		});
+		
 		this.socket = new ws.Server({
 			host: this.host,
 			port: this.port,
@@ -96,6 +106,38 @@ class Chat {
 				this.eventHandlers[event.type].call(this, client, event);
 			});
 		});
+	}
+	stop() {
+		this.writeBackup();
+	}
+	
+	readBackup() {
+		let fileContents = "";
+		
+		try {
+			fileContents = fs.readFileSync("speaco-backup.json");
+		} catch (_) {}
+		
+		if (!fileContents) {
+			return;
+		}
+		
+		const backup = JSON.parse(fileContents);
+		
+		this.chatterData = new Map(Object.entries(backup["chatter-data"]));
+		this.history = backup["history"];
+		this.attachments = new Map(Object.entries(backup["attachments"]));
+	}
+	writeBackup() {
+		const backup = {
+			"chatter-data": Object.fromEntries(this.chatterData),
+			"history": this.history,
+			"attachments": Object.fromEntries(this.attachments)
+		};
+		
+		try {
+			fs.writeFileSync("speaco-backup.json", JSON.stringify(backup));
+		} catch (_) {}
 	}
 	
 	error(client, message) {
