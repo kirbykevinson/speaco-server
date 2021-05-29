@@ -361,6 +361,12 @@ class Chat {
 		this.history.push(message);
 		
 		if (this.history.length > this.limits.historySize) {
+			const firstMessageAttachmentId = this.history[0].attachment;
+			
+			if (firstMessageAttachmentId) {
+				this.attachments.get(firstMessageAttachmentId).data = null;
+			}
+			
 			this.history.shift();
 		}
 		
