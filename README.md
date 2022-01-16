@@ -1,3 +1,5 @@
+# THIS PIECE OF SOFTWARE IS NO LONGER DEVELOPED
+
 Reference implementation implementation of a [Speaco] server. It
 supports all of the features of the client but lacks non-LAN features
 such as spam protection and encryption.
